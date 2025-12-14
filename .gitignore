@@ -1,0 +1,14 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Deno
+.denocache/
+deno.lock
+
+# Node/other tooling
+node_modules/
+
+# OS
+.DS_Store
