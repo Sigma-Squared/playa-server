@@ -11,6 +11,7 @@ const VERSION = config.version;
 const MEDIA_ROOT = join(Deno.cwd(), config.media_root);
 
 const app = new Hono();
+const api = new Hono();
 
 app.use("*", async (context: Context, next: Next) => {
   console.log(`${context.req.method} ${context.req.url}`);
@@ -20,8 +21,6 @@ app.use("*", async (context: Context, next: Next) => {
 app.get("/", (context: Context) => {
   return context.json({ status: { code: 2, message: "Ok" }, data: "" });
 });
-
-const api = app.route("/api/playa/v2");
 
 api.get("/version", (context: Context) => {
   return context.json(createOkResponse(VERSION));
@@ -46,17 +45,16 @@ api.get("/videos", (context: Context) => {
   }));
 });
 
-api.get("/videos/:id/video.mp4", async (context: Context) => {
+api.get("/videos/:id/video.mp4", (context: Context) => {
   const id = context.req.param("id");
-  const videoPath = join(MEDIA_ROOT, id, "video.mp4");
+  console.log(`Request for video ID: ${id}`);
+  const videoPath = join("/Users/chamu/Downloads", "jasminx tennis strip.mp4");
 
   try {
-    const fileResponse = await serveFile(context.req.raw, videoPath);
-    return context.newResponse(fileResponse.body, {
-      status: fileResponse.status,
-      headers: fileResponse.headers,
-    });
+    console.log(`Serving video file from path: ${videoPath}`);
+    return serveFile(context.req.raw, videoPath);
   } catch (error) {
+    console.error(error);
     if (error instanceof Deno.errors.NotFound) {
       return context.json({
         status: { code: 404, message: "Video not found." },
@@ -66,6 +64,8 @@ api.get("/videos/:id/video.mp4", async (context: Context) => {
     throw error;
   }
 });
+
+app.route("/api/playa/v2", api);
 
 function parseQueryNumber(value: string | undefined, fallback: number): number {
   if (!value) {
