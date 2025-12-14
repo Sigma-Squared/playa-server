@@ -1,11 +1,14 @@
-import { Hono } from "@hono";
-import type { Context, Next } from "@hono";
+import { Hono } from "@hono/hono";
+import type { Context, Next } from "@hono/hono";
+import { join } from "@std/path";
+import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
 import { type Configuration, createOkResponse } from "./model.ts";
 
 const config = await loadConfig();
 const PORT = config.port;
 const VERSION = config.version;
+const MEDIA_ROOT = join(Deno.cwd(), config.media_root);
 
 const app = new Hono();
 
@@ -41,6 +44,27 @@ api.get("/videos", (context: Context) => {
     order,
     direction,
   }));
+});
+
+api.get("/videos/:id/video.mp4", async (context: Context) => {
+  const id = context.req.param("id");
+  const videoPath = join(MEDIA_ROOT, id, "video.mp4");
+
+  try {
+    const fileResponse = await serveFile(context.req.raw, videoPath);
+    return context.newResponse(fileResponse.body, {
+      status: fileResponse.status,
+      headers: fileResponse.headers,
+    });
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return context.json({
+        status: { code: 404, message: "Video not found." },
+        data: null,
+      }, 404);
+    }
+    throw error;
+  }
 });
 
 function parseQueryNumber(value: string | undefined, fallback: number): number {

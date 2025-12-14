@@ -1,4 +1,4 @@
-import { join } from "@std/path/mod.ts";
+import { join } from "@std/path";
 import { loadConfig } from "./config.ts";
 
 let cachedExtensions: string[] | null = null;

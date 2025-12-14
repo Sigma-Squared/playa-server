@@ -1,5 +1,5 @@
-import { join } from "@std/path/mod.ts";
-import { parse } from "@std/yaml/mod.ts";
+import { join } from "@std/path";
+import { parse } from "@std/yaml";
 import type { Configuration } from "./model.ts";
 
 const CONFIG_LOCATIONS = [
@@ -10,6 +10,7 @@ const CONFIG_LOCATIONS = [
 export type AppConfig = Configuration & {
   port: number;
   version: string;
+  media_root: string;
   supported_extensions: string[];
 };
 
@@ -63,6 +64,7 @@ function normalizeConfig(doc: unknown): AppConfig {
     version: readString(raw.version, "1.3.0"),
     site_name: readString(raw.site_name, "Deno-Play'A"),
     site_logo: readString(raw.site_logo, "https://picsum.photos/256/256"),
+    media_root: readString(raw.media_root, "./media"),
     auth: readBoolean(raw.auth, false),
     auth_by_code: readOptionalBoolean(raw.auth_by_code),
     actors: readBoolean(raw.actors, false),
