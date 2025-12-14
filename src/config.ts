@@ -2,7 +2,7 @@ import { parse } from "@std/yaml";
 import { z } from "@zod/zod";
 import type { PlayaConfiguration } from "./model.ts";
 
-const CONFIG_PATH = "/config/config.yml";
+const CONFIG_PATH = "./config/config.yml"; //"/config/config.yml";
 
 export type AppConfig = {
   port: number;

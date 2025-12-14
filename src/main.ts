@@ -4,6 +4,7 @@ import { join } from "@std/path";
 import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
 import { createOkResponse, type PlayaConfiguration, videosQuerySchema } from "./model.ts";
+import { findMediaFiles } from "./media.ts";
 
 const config = await loadConfig();
 const PORT = config.port;
@@ -70,4 +71,6 @@ api.get("/videos/:id/stream", (context: Context) => {
 app.route("/api/playa/v2", api);
 
 console.log(`HTTP server listening on http://localhost:${PORT}`);
-Deno.serve({ port: PORT }, app.fetch);
+const files = await findMediaFiles("/Users/chamu/Downloads");
+console.log("files", files);
+//Deno.serve({ port: PORT }, app.fetch);

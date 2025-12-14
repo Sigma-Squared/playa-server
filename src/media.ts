@@ -1,47 +1,46 @@
-import { join } from "@std/path";
+import { walk } from "@std/fs";
+import { basename } from "@std/path";
 import { loadConfig } from "./config.ts";
+import { Video } from "./model.ts";
 
-let cachedExtensions: string[] | null = null;
+export async function findMediaFiles(root: string): Promise<Map<string, Video>> {
+  const supportedExtensions = (await loadConfig()).supported_extensions;
+  return walkForMedia(root, supportedExtensions);
+}
 
-/**
- * Recursively collects all supported media files under the given directory.
- */
-export async function findMediaFiles(root: string): Promise<string[]> {
-  const matches: string[] = [];
-  const supportedExtensions = await getSupportedExtensions();
-  await collect(root, matches, supportedExtensions);
+async function walkForMedia(
+  root: string,
+  extensions: string[],
+): Promise<Map<string, Video>> {
+  const matches = new Map<string, Video>();
+  const normalized = extensions.map((ext) => ext.toLowerCase());
+
+  try {
+    for await (const entry of walk(root, { includeDirs: false, followSymlinks: false })) {
+      if (!entry.isFile) {
+        continue;
+      }
+
+      const lowerPath = entry.path.toLowerCase();
+      if (normalized.some((ext) => lowerPath.endsWith(ext))) {
+        const { path } = entry;
+        matches.set(await pathToHash(path), { path, filename: basename(entry.path) });
+      }
+    }
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return matches;
+    }
+    throw error;
+  }
+
   return matches;
 }
 
-async function collect(
-  currentDir: string,
-  matches: string[],
-  supportedExtensions: string[],
-): Promise<void> {
-  for await (const entry of Deno.readDir(currentDir)) {
-    const entryPath = join(currentDir, entry.name);
-    if (entry.isDirectory) {
-      await collect(entryPath, matches, supportedExtensions);
-      continue;
-    }
-
-    if (entry.isFile && hasSupportedExtension(entry.name, supportedExtensions)) {
-      matches.push(entryPath);
-    }
-  }
-}
-
-async function getSupportedExtensions(): Promise<string[]> {
-  if (cachedExtensions) {
-    return cachedExtensions;
-  }
-
-  const config = await loadConfig();
-  cachedExtensions = config.supported_extensions;
-  return cachedExtensions;
-}
-
-function hasSupportedExtension(filename: string, supportedExtensions: string[]): boolean {
-  const lower = filename.toLowerCase();
-  return supportedExtensions.some((ext) => lower.endsWith(ext));
+async function pathToHash(path: string): Promise<string> {
+  const data = new TextEncoder().encode(path);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashHex;
 }

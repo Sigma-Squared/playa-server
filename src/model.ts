@@ -153,3 +153,8 @@ export const videosQuerySchema = z.object({
     z.enum(["asc", "desc"]),
   ).catch("desc"),
 });
+
+export type Video = {
+  path: string;
+  filename: string;
+};
