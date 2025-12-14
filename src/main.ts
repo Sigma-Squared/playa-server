@@ -3,7 +3,7 @@ import type { Context, Next } from "@hono/hono";
 import { join } from "@std/path";
 import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
-import { type Configuration, createOkResponse } from "./model.ts";
+import { type Configuration, createOkResponse, videosQuerySchema } from "./model.ts";
 
 const config = await loadConfig();
 const PORT = config.port;
@@ -27,15 +27,15 @@ api.get("/version", (context: Context) => {
 });
 
 api.get("/config", (context: Context) => {
-  return context.json(createOkResponse<Configuration>(config));
+  return context.json(createOkResponse<Configuration>(config.playa_config));
 });
 
 api.get("/videos", (context: Context) => {
-  const query = context.req.query();
-  const pageIndex = parseQueryNumber(query["page-index"], 0);
-  const pageSize = parseQueryNumber(query["page-size"], 12);
-  const order = query["order"] ?? "release_date";
-  const direction = normalizeDirection(query["direction"]);
+  const parsed = videosQuerySchema.parse(context.req.query());
+  const pageIndex = parsed["page-index"];
+  const pageSize = parsed["page-size"];
+  const order = parsed.order;
+  const direction = parsed.direction;
 
   return context.json(createOkResponse({
     page_index: pageIndex,
@@ -66,24 +66,6 @@ api.get("/videos/:id/video.mp4", (context: Context) => {
 });
 
 app.route("/api/playa/v2", api);
-
-function parseQueryNumber(value: string | undefined, fallback: number): number {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function normalizeDirection(value: string | undefined): "asc" | "desc" {
-  if (!value) {
-    return "desc";
-  }
-
-  const lower = value.toLowerCase();
-  return lower === "asc" ? "asc" : "desc";
-}
 
 console.log(`HTTP server listening on http://localhost:${PORT}`);
 Deno.serve({ port: PORT }, app.fetch);

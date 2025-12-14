@@ -1,3 +1,5 @@
+import { z } from "@zod/zod";
+
 export type Rsp<T> = {
   status: {
     code: 0 | 1 | 2 | 3 | 4 | 5 | 401 | 403 | 404 | 503;
@@ -141,3 +143,13 @@ export function createOkResponse<T>(data: T): Rsp<T> {
     data,
   };
 }
+
+export const videosQuerySchema = z.object({
+  "page-index": z.coerce.number().int().min(0).catch(0),
+  "page-size": z.coerce.number().int().min(1).catch(12),
+  order: z.string().min(1).catch("release_date"),
+  direction: z.preprocess(
+    (value: unknown) => (typeof value === "string" ? value.toLowerCase() : value),
+    z.enum(["asc", "desc"]),
+  ).catch("desc"),
+});

@@ -1,5 +1,6 @@
 import { join } from "@std/path";
 import { parse } from "@std/yaml";
+import { z } from "@zod/zod";
 import type { Configuration } from "./model.ts";
 
 const CONFIG_LOCATIONS = [
@@ -7,12 +8,39 @@ const CONFIG_LOCATIONS = [
   join(Deno.cwd(), "config", "config.yml"),
 ];
 
-export type AppConfig = Configuration & {
+export type AppConfig = {
   port: number;
   version: string;
   media_root: string;
   supported_extensions: string[];
+  playa_config: Configuration;
 };
+
+const playaConfigSchema: z.ZodType<Configuration> = z.object({
+  site_name: z.string().min(1).catch("Deno-Play'A"),
+  site_logo: z.string().min(1).catch("https://picsum.photos/256/256"),
+  auth: z.boolean().catch(false),
+  auth_by_code: z.boolean().optional(),
+  actors: z.boolean().catch(false),
+  categories: z.boolean().catch(false),
+  categories_groups: z.boolean().catch(false),
+  studios: z.boolean().catch(false),
+  scripts: z.boolean().catch(false),
+  masks: z.boolean().catch(false),
+  analytics: z.boolean().catch(false),
+  theme: z.coerce.number().optional(),
+  ar: z.boolean().optional(),
+  nsfw: z.boolean().optional(),
+});
+
+const configSchema: z.ZodType<AppConfig> = z.object({
+  port: z.coerce.number().int().min(1).catch(80),
+  version: z.string().min(1).catch("1.3.0"),
+  media_root: z.string().min(1).catch("./media"),
+  supported_extensions: z.array(z.string().min(1)).nonempty()
+    .transform((extensions) => extensions.map((ext) => ext.toLowerCase())),
+  playa_config: playaConfigSchema,
+});
 
 let cachedConfig: AppConfig | null = null;
 
@@ -22,8 +50,8 @@ export async function loadConfig(): Promise<AppConfig> {
   }
 
   const text = await readConfigText();
-  const parsed = parse(text);
-  const normalized = normalizeConfig(parsed);
+  const parsed_yaml = parse(text);
+  const normalized = configSchema.parse(parsed_yaml);
   cachedConfig = normalized;
   return cachedConfig;
 }
@@ -43,98 +71,4 @@ async function readConfigText(): Promise<string> {
   throw new Error(
     `Unable to load config. Checked: ${CONFIG_LOCATIONS.join(", ")}`,
   );
-}
-
-function normalizeConfig(doc: unknown): AppConfig {
-  if (!doc || typeof doc !== "object") {
-    throw new Error("Configuration file must contain an object.");
-  }
-
-  const raw = doc as Record<string, unknown>;
-  const supported = raw.supported_extensions;
-
-  if (!Array.isArray(supported) || supported.length === 0) {
-    throw new Error("Configuration requires a non-empty supported_extensions list.");
-  }
-
-  const supportedExtensions = supported.map((ext) => String(ext).toLowerCase());
-
-  return {
-    port: readNumber(raw.port, 80),
-    version: readString(raw.version, "1.3.0"),
-    site_name: readString(raw.site_name, "Deno-Play'A"),
-    site_logo: readString(raw.site_logo, "https://picsum.photos/256/256"),
-    media_root: readString(raw.media_root, "./media"),
-    auth: readBoolean(raw.auth, false),
-    auth_by_code: readOptionalBoolean(raw.auth_by_code),
-    actors: readBoolean(raw.actors, false),
-    categories: readBoolean(raw.categories, false),
-    categories_groups: readBoolean(raw.categories_groups, false),
-    studios: readBoolean(raw.studios, false),
-    scripts: readBoolean(raw.scripts, false),
-    masks: readBoolean(raw.masks, false),
-    analytics: readBoolean(raw.analytics, false),
-    theme: readOptionalNumber(raw.theme),
-    ar: readOptionalBoolean(raw.ar),
-    nsfw: readOptionalBoolean(raw.nsfw),
-    supported_extensions: supportedExtensions,
-  };
-}
-
-function readNumber(value: unknown, defaultValue?: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  if (typeof defaultValue === "number") {
-    return defaultValue;
-  }
-
-  throw new Error("Expected a numeric value.");
-}
-
-function readOptionalNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return undefined;
-}
-
-function readString(value: unknown, defaultValue: string): string {
-  if (typeof value === "string" && value.length > 0) {
-    return value;
-  }
-
-  return defaultValue;
-}
-
-function readBoolean(value: unknown, defaultValue: boolean): boolean {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  return defaultValue;
-}
-
-function readOptionalBoolean(value: unknown): boolean | undefined {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  return undefined;
 }
