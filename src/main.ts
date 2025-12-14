@@ -32,10 +32,12 @@ api.get("/config", (context: Context) => {
 
 api.get("/videos", (context: Context) => {
   const parsed = videosQuerySchema.parse(context.req.query());
-  const pageIndex = parsed["page-index"];
-  const pageSize = parsed["page-size"];
-  const order = parsed.order;
-  const direction = parsed.direction;
+  const {
+    "page-index": pageIndex,
+    "page-size": pageSize,
+    order,
+    direction,
+  } = parsed;
 
   return context.json(createOkResponse({
     page_index: pageIndex,
@@ -45,7 +47,7 @@ api.get("/videos", (context: Context) => {
   }));
 });
 
-api.get("/videos/:id/video.mp4", (context: Context) => {
+api.get("/videos/:id/stream", (context: Context) => {
   const id = context.req.param("id");
   console.log(`Request for video ID: ${id}`);
   const videoPath = join("/Users/chamu/Downloads", "jasminx tennis strip.mp4");

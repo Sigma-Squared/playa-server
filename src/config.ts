@@ -1,12 +1,8 @@
-import { join } from "@std/path";
 import { parse } from "@std/yaml";
 import { z } from "@zod/zod";
 import type { PlayaConfiguration } from "./model.ts";
 
-const CONFIG_LOCATIONS = [
-  "/config/config.yml",
-  join(Deno.cwd(), "config", "config.yml"),
-];
+const CONFIG_PATH = "/config/config.yml";
 
 export type AppConfig = {
   port: number;
@@ -49,26 +45,9 @@ export async function loadConfig(): Promise<AppConfig> {
     return cachedConfig;
   }
 
-  const text = await readConfigText();
+  const text = await Deno.readTextFile(CONFIG_PATH);
   const parsed_yaml = parse(text);
   const normalized = configSchema.parse(parsed_yaml);
   cachedConfig = normalized;
   return cachedConfig;
-}
-
-async function readConfigText(): Promise<string> {
-  for (const path of CONFIG_LOCATIONS) {
-    try {
-      return await Deno.readTextFile(path);
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error(
-    `Unable to load config. Checked: ${CONFIG_LOCATIONS.join(", ")}`,
-  );
 }
