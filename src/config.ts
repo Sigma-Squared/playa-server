@@ -18,25 +18,25 @@ export type AppConfig = {
 
 const playaConfigSchema: z.ZodType<PlayaConfiguration> = z.object({
   site_name: z.string().min(1).catch("Deno-Play'A"),
-  site_logo: z.string().min(1).catch("https://picsum.photos/256/256"),
+  site_logo: z.string().optional().default(""),
   auth: z.boolean().catch(false),
   auth_by_code: z.boolean().optional(),
-  actors: z.boolean().catch(false),
-  categories: z.boolean().catch(false),
-  categories_groups: z.boolean().catch(false),
-  studios: z.boolean().catch(false),
-  scripts: z.boolean().catch(false),
-  masks: z.boolean().catch(false),
-  analytics: z.boolean().catch(false),
-  theme: z.coerce.number().optional(),
-  ar: z.boolean().optional(),
-  nsfw: z.boolean().optional(),
+  actors: z.coerce.boolean().optional().default(false),
+  categories: z.coerce.boolean().optional().default(false),
+  categories_groups: z.coerce.boolean().optional().default(false),
+  studios: z.coerce.boolean().optional().default(false),
+  scripts: z.coerce.boolean().optional().default(false),
+  masks: z.coerce.boolean().optional().default(false),
+  analytics: z.coerce.boolean().optional().default(false),
+  theme: z.coerce.number().optional().default(1),
+  ar: z.coerce.boolean().optional().default(false),
+  nsfw: z.coerce.boolean().optional().default(false),
 });
 
 const configSchema: z.ZodType<AppConfig> = z.object({
   port: z.coerce.number().int().min(1).catch(80),
   version: z.string().min(1).catch("1.3.0"),
-  media_root: z.string().min(1).catch("./media"),
+  media_root: z.string().min(1).catch("/media"),
   supported_extensions: z.array(z.string().min(1)).nonempty()
     .transform((extensions) => extensions.map((ext) => ext.toLowerCase())),
   playa_config: playaConfigSchema,
