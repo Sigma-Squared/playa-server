@@ -1,7 +1,5 @@
 import { join } from "@std/path/mod.ts";
-import { parse } from "@std/yaml/mod.ts";
-
-const DEFAULT_CONFIG_PATH = "/config/media.yml";
+import { loadConfig } from "./config.ts";
 
 let cachedExtensions: string[] | null = null;
 
@@ -38,46 +36,9 @@ async function getSupportedExtensions(): Promise<string[]> {
     return cachedExtensions;
   }
 
-  const configText = await readConfigFile();
-  const parsed = parse(configText);
-  const extensions = extractExtensions(parsed);
-  cachedExtensions = extensions;
+  const config = await loadConfig();
+  cachedExtensions = config.supported_extensions;
   return cachedExtensions;
-}
-
-async function readConfigFile(): Promise<string> {
-  const candidatePaths = [
-    DEFAULT_CONFIG_PATH,
-    join(Deno.cwd(), "config", "media.yml"),
-  ];
-
-  for (const path of candidatePaths) {
-    try {
-      return await Deno.readTextFile(path);
-    } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error(
-    `Unable to load media config. Checked: ${candidatePaths.join(", ")}`,
-  );
-}
-
-function extractExtensions(doc: unknown): string[] {
-  if (!doc || typeof doc !== "object") {
-    throw new Error("Media config must be an object.");
-  }
-
-  const raw = (doc as Record<string, unknown>).supported_extensions;
-  if (!Array.isArray(raw) || raw.length === 0) {
-    throw new Error("Media config requires a non-empty supported_extensions list.");
-  }
-
-  return raw.map((ext) => String(ext).toLowerCase());
 }
 
 function hasSupportedExtension(filename: string, supportedExtensions: string[]): boolean {
