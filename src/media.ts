@@ -1,5 +1,5 @@
-import { join } from "https://deno.land/std/path/mod.ts";
-import { parse } from "https://deno.land/std/yaml/mod.ts";
+import { join } from "@std/path/mod.ts";
+import { parse } from "@std/yaml/mod.ts";
 
 const DEFAULT_CONFIG_PATH = "/config/media.yml";
 

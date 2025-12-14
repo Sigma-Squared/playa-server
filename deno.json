@@ -6,5 +6,10 @@
     "options": {
       "lineWidth": 100
     }
+  },
+  "imports": {
+    "@hono": "https://deno.land/x/hono@v3.7.5/mod.ts",
+    "@std/path/mod.ts": "https://deno.land/std/path/mod.ts",
+    "@std/yaml/mod.ts": "https://deno.land/std/yaml/mod.ts"
   }
 }

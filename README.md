@@ -27,3 +27,8 @@ docker run -p 4236:4236 deno-playa
 ```
 
 Visit `http://localhost:4236` to see JSON response (or pass `-e PORT=8080` when running the container to change the port).
+
+### API
+
+- `GET /` – simple status payload.
+- `GET /api/playa/v2/version` – returns the server version (`PLAYA_VERSION` env overrides the default).
