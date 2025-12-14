@@ -1,7 +1,7 @@
 import { join } from "@std/path";
 import { parse } from "@std/yaml";
 import { z } from "@zod/zod";
-import type { Configuration } from "./model.ts";
+import type { PlayaConfiguration } from "./model.ts";
 
 const CONFIG_LOCATIONS = [
   "/config/config.yml",
@@ -13,10 +13,10 @@ export type AppConfig = {
   version: string;
   media_root: string;
   supported_extensions: string[];
-  playa_config: Configuration;
+  playa_config: PlayaConfiguration;
 };
 
-const playaConfigSchema: z.ZodType<Configuration> = z.object({
+const playaConfigSchema: z.ZodType<PlayaConfiguration> = z.object({
   site_name: z.string().min(1).catch("Deno-Play'A"),
   site_logo: z.string().min(1).catch("https://picsum.photos/256/256"),
   auth: z.boolean().catch(false),

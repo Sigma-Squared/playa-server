@@ -8,7 +8,7 @@ export type Rsp<T> = {
   data: T;
 };
 
-export type Configuration = {
+export type PlayaConfiguration = {
   site_name: string;
   site_logo: string;
   auth?: boolean;

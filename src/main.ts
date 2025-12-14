@@ -3,7 +3,7 @@ import type { Context, Next } from "@hono/hono";
 import { join } from "@std/path";
 import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
-import { type Configuration, createOkResponse, videosQuerySchema } from "./model.ts";
+import { createOkResponse, type PlayaConfiguration, videosQuerySchema } from "./model.ts";
 
 const config = await loadConfig();
 const PORT = config.port;
@@ -27,7 +27,7 @@ api.get("/version", (context: Context) => {
 });
 
 api.get("/config", (context: Context) => {
-  return context.json(createOkResponse<Configuration>(config.playa_config));
+  return context.json(createOkResponse<PlayaConfiguration>(config.playa_config));
 });
 
 api.get("/videos", (context: Context) => {
