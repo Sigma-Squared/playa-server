@@ -58,8 +58,6 @@ api.get("/videos", (context: Context) => {
   const {
     "page-index": pageIndex,
     "page-size": pageSize,
-    order,
-    direction,
   } = parsed;
 
   const itemTotal = files.size;

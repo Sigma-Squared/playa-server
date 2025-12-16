@@ -1,10 +1,18 @@
 # Deno HTTP Server
 
-Simple TypeScript HTTP server running on Deno and packaged with Docker. All application code lives under `src/`.
+Simple TypeScript [Play'A VR Player](https://www.playavr.com/) server implementing their
+[v2 API](https://github.com/Playa-vr/PLAYA-API-v2/blob/main/docs.md) running on Deno and packaged
+with Docker. All application code lives under `src/`.
 
 ## Configuration
 
-All runtime settings live in `config/config.yml`. In production the server first looks for `/config/config.yml` (e.g., mounted inside a container) and falls back to the copy in the repo. The file defines the HTTP port, version string, site metadata, feature toggles, and the list of supported media file extensions.
+All runtime settings live in `appdata/config.yml` (baked into the image under `/appdata.defaults`
+and expected at runtime in `/appdata/config.yml`). The file defines:
+
+- HTTP port (default 4236)
+- Playa client version
+- Site metadata and feature toggles
+- Supported media file extensions
 
 ## Local development
 
@@ -14,7 +22,11 @@ deno task dev
 
 ## Docker
 
-Build image:
+```bash
+docker run --rm -p 80:4236 -v <config folder>:/appdata -v <media folder>:/media ghcr.io/sigma-squared/playa-server:latest
+```
+
+Or, build locally:
 
 ```bash
 docker build -t deno-playa .
@@ -23,12 +35,19 @@ docker build -t deno-playa .
 Run container:
 
 ```bash
-docker run -p 80:80 deno-playa
+docker run --rm -p 80:4236 -v <config folder>:/appdata -v <media folder>:/media deno-playa
 ```
 
-Visit `http://localhost:80` to see JSON response. Update `config/config.yml` if you need to expose a different port or change other server metadata.
+Visit `http://localhost:80` to see JSON response. Update `appdata/config.yml` if you need to expose
+a different port or change other server metadata.
 
-### API
+### Implements
 
 - `GET /` – simple status payload.
-- `GET /api/playa/v2/version` – returns the server version from `config/config.yml`.
+- `GET /content/:id` – streams the video file for the given id.
+- `GET /content/:id/thumbnail` – generates (if missing) and returns a thumbnail for the video.
+- `GET /api/playa/v2/version` – returns the Playa client version from config.
+- `GET /api/playa/v2/config` – returns the Playa configuration block.
+- `GET /api/playa/v2/videos` – paginated list of videos (query params: `page-index`, `page-size`,
+  `order`, `direction`).
+- `GET /api/playa/v2/video/:id` – returns details for a single video.
