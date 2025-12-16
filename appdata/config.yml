@@ -4,6 +4,14 @@ media_root: "/media"
 supported_extensions:
   - .mp4
   - .mkv
+  - .mov
+  - .avi
+  - .flv
+  - .wmv
+  - .webm
+  - .m4v
+  - .mpg
+  - .mpeg
 playa_config:
   site_name: "Deno-Play'A"
   site_logo: "https://picsum.photos/256/256"

@@ -159,3 +159,12 @@ export type Video = {
   filename: string;
   durationSeconds: number;
 };
+
+export type VideoMetadata = {
+  title: string;
+  subtitle: string;
+  description: string;
+  releaseDate: Date; // epoch timestamp
+  views: number;
+  previewImage: string; // path to preview image, can be relative
+};

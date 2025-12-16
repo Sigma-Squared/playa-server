@@ -11,3 +11,12 @@ export function dockerifyPath(path: string): string {
   }
   return path;
 }
+
+export function paginate<T>(items: T[], pageSize: number, pageIndex: number): T[] {
+  if (pageSize <= 0 || pageIndex < 0) {
+    return [];
+  }
+
+  const start = pageIndex * pageSize;
+  return items.slice(start, start + pageSize);
+}

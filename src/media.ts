@@ -1,7 +1,7 @@
 import { walk } from "@std/fs";
 import { basename } from "@std/path";
 import { loadConfig } from "./config.ts";
-import { Video } from "./model.ts";
+import { Video, VideoMetadata } from "./model.ts";
 
 export async function findMediaFiles(root: string): Promise<Map<string, Video>> {
   const supportedExtensions = (await loadConfig()).supported_extensions;
@@ -96,4 +96,16 @@ export async function createThumbnail(
     console.error("[media.createThumbnail FAILED", new TextDecoder().decode(stderr));
   }
   return success;
+}
+
+export async function getVideoMetadata(id: string, video: Video): Promise<VideoMetadata> {
+  const { filename, path } = video;
+  return {
+    title: filename,
+    subtitle: filename,
+    description: path,
+    releaseDate: (await Deno.stat(path)).birthtime ?? new Date(),
+    views: 0,
+    previewImage: `/content/${id}/thumbnail`,
+  };
 }

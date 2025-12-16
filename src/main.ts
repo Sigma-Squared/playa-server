@@ -12,20 +12,34 @@ import {
   videosQuerySchema,
   VideoView,
 } from "./model.ts";
-import { createThumbnail, findMediaFiles } from "./media.ts";
-import { dockerifyPath, relativeToAbsoluteUrl } from "./utils.ts";
+import { createThumbnail, findMediaFiles, getVideoMetadata } from "./media.ts";
+import { dockerifyPath, paginate, relativeToAbsoluteUrl } from "./utils.ts";
 
 const VERSION = "1.0.0";
 
 const config = await loadConfig();
 
+const files = await findMediaFiles(dockerifyPath(config.media_root));
+const videoList: VideoListView[] = Array.from(files, ([id, video]) => ({
+  id,
+  title: video.filename,
+  preview_image: `/content/${id}/thumbnail`,
+  details: [{
+    type: "full",
+    duration_seconds: video.durationSeconds,
+  }],
+}));
+console.log(`[main] Loaded ${videoList.length} files from ${config.media_root}`);
+
 const app = new Hono();
 const api = new Hono();
 
-app.use("*", async (context: Context, next: Next) => {
-  console.log(`${context.req.method} ${context.req.url}`);
-  await next();
-});
+if (Deno.env.get("DEVELOPMENT")) {
+  app.use("*", async (context: Context, next: Next) => {
+    console.log(`[main] ${context.req.method} ${context.req.url}`);
+    await next();
+  });
+}
 
 app.get("/", (context: Context) => {
   return context.json({ status: { code: 2, message: "Ok" }, data: "" });
@@ -39,15 +53,6 @@ api.get("/config", (context: Context) => {
   return context.json(createOkResponse<PlayaConfiguration>(config.playa_config));
 });
 
-function paginate<T>(items: T[], pageSize: number, pageIndex: number): T[] {
-  if (pageSize <= 0 || pageIndex < 0) {
-    return [];
-  }
-
-  const start = pageIndex * pageSize;
-  return items.slice(start, start + pageSize);
-}
-
 api.get("/videos", (context: Context) => {
   const parsed = videosQuerySchema.parse(context.req.query());
   const {
@@ -57,14 +62,14 @@ api.get("/videos", (context: Context) => {
     direction,
   } = parsed;
 
-  const item_total = files.size;
-  const page_total = Math.ceil(item_total / pageSize);
+  const itemTotal = files.size;
+  const pageTotal = Math.ceil(itemTotal / pageSize);
 
   return context.json(createOkResponse<Page<VideoListView>>({
     page_index: pageIndex,
     page_size: pageSize,
-    page_total,
-    item_total,
+    page_total: pageTotal,
+    item_total: itemTotal,
     content: paginate(videoList, pageSize, pageIndex).map((vw) => ({
       ...vw,
       preview_image: relativeToAbsoluteUrl(vw.preview_image, context.req),
@@ -72,24 +77,30 @@ api.get("/videos", (context: Context) => {
   }));
 });
 
-api.get("/video/:id", (context: Context) => {
+api.get("/video/:id", async (context: Context) => {
   const id = context.req.param("id");
   const video = files.get(id);
   if (!video) {
-    return context.json({
-      status: { code: 404, message: "Video not found." },
-      data: null,
-    }, 404);
+    return notFoundResponse(context);
   }
+
+  const {
+    title,
+    subtitle,
+    description,
+    previewImage,
+    releaseDate,
+    views,
+  } = await getVideoMetadata(id, video);
 
   return context.json(createOkResponse<VideoView>({
     id,
-    title: video.filename,
-    subtitle: "subtitle",
-    description: "This is a detailed description of the video.",
-    preview_image: relativeToAbsoluteUrl(`/content/${id}/thumbnail`, context.req),
-    release_date: Date.now(),
-    views: 0,
+    title,
+    subtitle,
+    description,
+    preview_image: relativeToAbsoluteUrl(previewImage, context.req),
+    release_date: releaseDate.getTime(),
+    views,
     details: [{
       type: "full",
       duration_seconds: video.durationSeconds,
@@ -105,18 +116,6 @@ api.get("/video/:id", (context: Context) => {
     }],
   }));
 });
-
-const files = await findMediaFiles(dockerifyPath(config.media_root));
-const videoList: VideoListView[] = Array.from(files, ([key, video]) => ({
-  id: key,
-  title: video.filename,
-  preview_image: `/content/${key}/thumbnail`,
-  details: [{
-    type: "full",
-    duration_seconds: video.durationSeconds,
-  }],
-}));
-console.log(files);
 
 app.get("/content/:id", (context: Context) => {
   const id = context.req.param("id");
