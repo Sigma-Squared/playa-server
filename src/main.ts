@@ -1,6 +1,6 @@
 import { Hono } from "@hono/hono";
 import type { Context, Next } from "@hono/hono";
-import { join } from "@std/path";
+import { exists } from "@std/fs";
 import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
 import {
@@ -12,11 +12,9 @@ import {
   VideoView,
 } from "./model.ts";
 import { findMediaFiles } from "./media.ts";
+import { relativeToAbsoluteUrl } from "./utils.ts";
 
 const config = await loadConfig();
-const PORT = config.port;
-const VERSION = config.version;
-const MEDIA_ROOT = join(Deno.cwd(), config.media_root);
 
 const app = new Hono();
 const api = new Hono();
@@ -31,7 +29,7 @@ app.get("/", (context: Context) => {
 });
 
 api.get("/version", (context: Context) => {
-  return context.json(createOkResponse(VERSION));
+  return context.json(createOkResponse(config.playa_client_version));
 });
 
 api.get("/config", (context: Context) => {
@@ -96,13 +94,13 @@ api.get("/video/:id", (context: Context) => {
         quality_order: 45,
         stereo: "LR",
         projection: "180",
-        url: new URL(`/content/${id}`, context.req.url).toString(),
+        url: relativeToAbsoluteUrl(`/content/${id}`, context.req),
       }],
     }],
   }));
 });
 
-const files = await findMediaFiles("/Users/chamu/Downloads");
+const files = await findMediaFiles(config.media_root);
 const videoList: VideoListView[] = Array.from(files, ([key, video]) => ({
   id: key,
   title: video.filename,
@@ -134,6 +132,17 @@ app.get("/content/:id", (context: Context) => {
   }
 });
 
+app.get("/content/:id/thumbnail", async (context: Context) => {
+  const id = context.req.param("id");
+
+  const thumbnailFile = `/appdata/thumnails/${id}.jpg`;
+  if (!await exists(thumbnailFile)) {
+    
+  }
+    
+  return serveFile(context.req.raw, thumbnailFile);
+});
+
 app.route("/api/playa/v2", api);
 
-Deno.serve({ port: PORT }, app.fetch);
+Deno.serve({ port: config.port }, app.fetch);

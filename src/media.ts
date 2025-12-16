@@ -69,3 +69,29 @@ async function getDuration(path: string): Promise<number> {
   if (!success) return 0;
   return Math.floor(Number(new TextDecoder().decode(stdout).trim()));
 }
+
+export async function createThumbnail(
+  video: Video,
+  outputPath: string,
+): Promise<void> {
+  const inputPath = video.path;
+  const { success, stderr } = await new Deno.Command("ffmpeg", {
+    args: [
+      "-y",
+      "-i",
+      inputPath,
+      "-vf",
+      "thumbnail,crop=iw/2:ih:0:0,scale=320:-1",
+      "-frames:v",
+      "1",
+      outputPath,
+    ],
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+
+  if (!success) {
+    const error = new TextDecoder().decode(stderr);
+    throw new Error(`Failed to create thumbnail: ${error}`);
+  }
+}

@@ -2,11 +2,11 @@ import { parse } from "@std/yaml";
 import { z } from "@zod/zod";
 import type { PlayaConfiguration } from "./model.ts";
 
-const CONFIG_PATH = "./config/config.yml"; //"/config/config.yml";
+const CONFIG_PATH = "/appdata/config.yml";
 
 export type AppConfig = {
   port: number;
-  version: string;
+  playa_client_version: string;
   media_root: string;
   supported_extensions: string[];
   playa_config: PlayaConfiguration;
@@ -31,7 +31,7 @@ const playaConfigSchema: z.ZodType<PlayaConfiguration> = z.object({
 
 const configSchema: z.ZodType<AppConfig> = z.object({
   port: z.coerce.number().int().min(1).catch(80),
-  version: z.string().min(1).catch("1.3.0"),
+  playa_client_version: z.string().min(1).catch("1.3.0"),
   media_root: z.string().min(1).catch("/media"),
   supported_extensions: z.array(z.string().min(1)).nonempty()
     .transform((extensions) => extensions.map((ext) => ext.toLowerCase())),
