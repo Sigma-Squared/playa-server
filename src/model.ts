@@ -38,7 +38,7 @@ type BaseVideo = {
   title: string;
   subtitle?: string;
   status?: string;
-  prevew_image: string; // URL to preview image
+  preview_image: string; // URL to preview image
   release_date?: number; // Epock UNIX timestamp
 };
 
@@ -157,5 +157,5 @@ export const videosQuerySchema = z.object({
 export type Video = {
   path: string;
   filename: string;
-  duration_seconds: number;
+  durationSeconds: number;
 };

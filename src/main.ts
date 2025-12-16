@@ -1,6 +1,7 @@
 import { Hono } from "@hono/hono";
 import type { Context, Next } from "@hono/hono";
-import { exists } from "@std/fs";
+import { ensureDir, exists } from "@std/fs";
+import { dirname } from "@std/path";
 import { serveFile } from "@std/http/file-server";
 import { loadConfig } from "./config.ts";
 import {
@@ -11,8 +12,10 @@ import {
   videosQuerySchema,
   VideoView,
 } from "./model.ts";
-import { findMediaFiles } from "./media.ts";
-import { relativeToAbsoluteUrl } from "./utils.ts";
+import { createThumbnail, findMediaFiles } from "./media.ts";
+import { dockerifyPath, relativeToAbsoluteUrl } from "./utils.ts";
+
+const VERSION = "1.0.0";
 
 const config = await loadConfig();
 
@@ -62,7 +65,10 @@ api.get("/videos", (context: Context) => {
     page_size: pageSize,
     page_total,
     item_total,
-    content: paginate(videoList, pageSize, pageIndex),
+    content: paginate(videoList, pageSize, pageIndex).map((vw) => ({
+      ...vw,
+      preview_image: relativeToAbsoluteUrl(vw.preview_image, context.req),
+    })),
   }));
 });
 
@@ -81,12 +87,12 @@ api.get("/video/:id", (context: Context) => {
     title: video.filename,
     subtitle: "subtitle",
     description: "This is a detailed description of the video.",
-    prevew_image: "",
+    preview_image: relativeToAbsoluteUrl(`/content/${id}/thumbnail`, context.req),
     release_date: Date.now(),
     views: 0,
     details: [{
       type: "full",
-      duration_seconds: video.duration_seconds,
+      duration_seconds: video.durationSeconds,
       links: [{
         is_stream: true,
         is_download: true,
@@ -100,14 +106,14 @@ api.get("/video/:id", (context: Context) => {
   }));
 });
 
-const files = await findMediaFiles(config.media_root);
+const files = await findMediaFiles(dockerifyPath(config.media_root));
 const videoList: VideoListView[] = Array.from(files, ([key, video]) => ({
   id: key,
   title: video.filename,
-  prevew_image: "",
+  preview_image: `/content/${key}/thumbnail`,
   details: [{
     type: "full",
-    duration_seconds: video.duration_seconds,
+    duration_seconds: video.durationSeconds,
   }],
 }));
 console.log(files);
@@ -123,10 +129,7 @@ app.get("/content/:id", (context: Context) => {
     return serveFile(context.req.raw, video.path);
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
-      return context.json({
-        status: { code: 404, message: "Video not found." },
-        data: null,
-      }, 404);
+      return notFoundResponse(context);
     }
     throw error;
   }
@@ -134,15 +137,35 @@ app.get("/content/:id", (context: Context) => {
 
 app.get("/content/:id/thumbnail", async (context: Context) => {
   const id = context.req.param("id");
+  try {
+    const video = files.get(id);
+    if (!video) {
+      throw new Deno.errors.NotFound();
+    }
 
-  const thumbnailFile = `/appdata/thumnails/${id}.jpg`;
-  if (!await exists(thumbnailFile)) {
-    
+    const thumbnailFile = dockerifyPath(`/appdata/thumbnails/${id}.jpg`);
+    if (!await exists(thumbnailFile)) {
+      await ensureDir(dirname(thumbnailFile));
+      await createThumbnail(video, thumbnailFile);
+    }
+
+    return serveFile(context.req.raw, thumbnailFile);
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return notFoundResponse(context);
+    }
+    throw error;
   }
-    
-  return serveFile(context.req.raw, thumbnailFile);
 });
+
+function notFoundResponse(context: Context) {
+  return context.json({
+    status: { code: 404, message: "Not Found." },
+    data: null,
+  }, 404);
+}
 
 app.route("/api/playa/v2", api);
 
+console.log("Deno Play'A Server version", VERSION);
 Deno.serve({ port: config.port }, app.fetch);

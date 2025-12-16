@@ -1,8 +1,7 @@
 import { parse } from "@std/yaml";
 import { z } from "@zod/zod";
 import type { PlayaConfiguration } from "./model.ts";
-
-const CONFIG_PATH = "/appdata/config.yml";
+import { dockerifyPath } from "./utils.ts";
 
 export type AppConfig = {
   port: number;
@@ -45,7 +44,7 @@ export async function loadConfig(): Promise<AppConfig> {
     return cachedConfig;
   }
 
-  const text = await Deno.readTextFile(CONFIG_PATH);
+  const text = await Deno.readTextFile(dockerifyPath("/appdata/config.yml"));
   const parsed_yaml = parse(text);
   const normalized = configSchema.parse(parsed_yaml);
   cachedConfig = normalized;

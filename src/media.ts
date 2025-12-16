@@ -27,7 +27,7 @@ async function walkForMedia(
         matches.set(await pathToHash(path), {
           path,
           filename: basename(entry.path),
-          duration_seconds: await getDuration(path),
+          durationSeconds: await getDuration(path),
         });
       }
     }
@@ -73,15 +73,18 @@ async function getDuration(path: string): Promise<number> {
 export async function createThumbnail(
   video: Video,
   outputPath: string,
-): Promise<void> {
+): Promise<boolean> {
   const inputPath = video.path;
+  const midpointSeconds = video.durationSeconds > 0 ? (video.durationSeconds / 2).toString() : "0";
   const { success, stderr } = await new Deno.Command("ffmpeg", {
     args: [
       "-y",
+      "-ss",
+      midpointSeconds,
       "-i",
       inputPath,
       "-vf",
-      "thumbnail,crop=iw/2:ih:0:0,scale=320:-1",
+      "crop=iw/2:ih:0:0,crop=iw*0.50:ih*0.50:iw*0.25:ih*0.25",
       "-frames:v",
       "1",
       outputPath,
@@ -89,9 +92,8 @@ export async function createThumbnail(
     stdout: "piped",
     stderr: "piped",
   }).output();
-
   if (!success) {
-    const error = new TextDecoder().decode(stderr);
-    throw new Error(`Failed to create thumbnail: ${error}`);
+    console.error("[media.createThumbnail FAILED", new TextDecoder().decode(stderr));
   }
+  return success;
 }

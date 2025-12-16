@@ -10,4 +10,4 @@ EXPOSE 4236
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "--allow-run=ffmpeg,ffprobe", "src/main.ts"]
+CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-run=ffmpeg,ffprobe", "src/main.ts"]

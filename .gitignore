@@ -11,3 +11,7 @@ node_modules/
 
 # OS
 .DS_Store
+
+appdata/*
+!appdata/config.yml
+media/*
