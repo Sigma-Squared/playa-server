@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "dev": "deno run --allow-net --allow-env --allow-read --allow-run=find --watch src/main.ts"
+    "dev": "deno run --allow-net --allow-env --allow-read --allow-run=ffprobe --watch src/main.ts"
   },
   "fmt": {
     "options": {

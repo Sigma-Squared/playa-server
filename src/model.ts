@@ -95,10 +95,10 @@ export type VideoLink =
   & (
     | {
       url: string; // URL to video file or stream
-      unavailable_reason: null;
+      unavailable_reason?: null;
     }
     | {
-      url: null;
+      url?: null;
       unavailable_reason: string;
     }
   )
@@ -157,4 +157,5 @@ export const videosQuerySchema = z.object({
 export type Video = {
   path: string;
   filename: string;
+  duration_seconds: number;
 };
